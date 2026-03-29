@@ -1,0 +1,89 @@
+name: kafka-eda-payflow
+
+services:
+
+  kafka:
+    image: apache/kafka:3.7.0
+    container_name: kafka-payflow
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093,CONTROLLER://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9094
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    networks:
+      - kafka-eda-net
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: kafdrop_payflow
+    environment:
+      KAFKA_BROKERCONNECT: kafka:9092
+    ports:
+      - "9000:9000"
+    depends_on:
+      - kafka
+    networks:
+      - kafka-eda-net
+
+  # -------- Postgres (Payment DB) --------
+  postgres-payment:
+    image: postgres:15
+    container_name: postgres_vigne_payment
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=paymentdb
+      - POSTGRES_USER=paymentdb
+      - POSTGRES_PASSWORD=paymentdb
+    volumes:
+      - vigne_paymentdb_data:/var/lib/postgresql/data
+    networks:
+      - kafka-eda-net
+
+  # -------- Postgres (Account DB) --------
+  postgres-account:
+    image: postgres:15
+    container_name: postgres_vigne_account
+    ports:
+      - "5434:5432"
+    environment:
+      - POSTGRES_DB=accountdb
+      - POSTGRES_USER=accountdb
+      - POSTGRES_PASSWORD=accountdb
+    volumes:
+      - vigne_accountdb_data:/var/lib/postgresql/data
+    networks:
+      - kafka-eda-net
+
+  # -------- Postgres (Notification DB) --------
+  postgres-notification:
+    image: postgres:15
+    container_name: postgres_vigne_notification
+    ports:
+      - "5435:5432"
+    environment:
+      - POSTGRES_DB=notificationdb
+      - POSTGRES_USER=notificationdb
+      - POSTGRES_PASSWORD=notificationdb
+    volumes:
+      - vigne_notificationdb_data:/var/lib/postgresql/data
+    networks:
+      - kafka-eda-net
+
+
+volumes:
+  vigne_notificationdb_data:
+  vigne_accountdb_data:
+  vigne_paymentdb_data:
+
+networks:
+  kafka-eda-net:
+    driver: bridge
