@@ -6,6 +6,7 @@ import com.b2b.paymentservice.api.dto.PaymentRequest;
 import com.b2b.paymentservice.api.dto.PaymentResponse;
 import com.b2b.paymentservice.domain.PaymentEntity;
 import com.b2b.paymentservice.domain.PaymentRepository;
+import com.b2b.paymentservice.handler.PaymentNotFoundException;
 import com.b2b.paymentservice.outbox.OutboxEventEntity;
 import com.b2b.paymentservice.outbox.OutboxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -40,8 +41,6 @@ public class PaymentServiceImpl implements PaymentService
     @Transactional
     public PaymentResponse createPayment(PaymentRequest paymentRequest)
     {
-//        TODO controlli e lancio eccezioni su paymentRequest
-
         PaymentEntity paymentEntity = new PaymentEntity(
                 paymentRequest.senderAccountId(),
                 paymentRequest.receiverAccountId(),
@@ -83,8 +82,7 @@ public class PaymentServiceImpl implements PaymentService
     @Transactional(readOnly = true)
     public PaymentResponse getPayment(UUID paymentId)
     {
-//        TODO gestione eccezione, paymentnotfound.
-        PaymentEntity entity = paymentRepository.getReferenceById(paymentId);
+        PaymentEntity entity = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException("Payment not found with the provided id: " + paymentId));
         return new PaymentResponse(entity.getPaymentId(),entity.getStatus(),entity.getPaymentRequestedAt(),entity.getAmount(),entity.getCurrency(),entity.getReasonPayment());
     }
 
