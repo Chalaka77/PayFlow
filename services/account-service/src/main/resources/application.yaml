@@ -1,14 +1,14 @@
 server:
-  port: 8081
+  port: 8082
 
 spring:
   application:
-    name: payment-service
+    name: account-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/paymentdb
-    username: paymentdb
-    password: paymentdb
+    url: jdbc:postgresql://localhost:5434/accountdb
+    username: accountdb
+    password: accountdb
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -22,12 +22,15 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-      group-id: payment-service-group
+      group-id: account-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+      enable-auto-commit: false
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
 
   flyway:
     enabled: true
