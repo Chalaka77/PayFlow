@@ -18,7 +18,7 @@
           <module>shared</module>
           <module>services/payment-service</module>
           <module>services/account-service</module>
-          <!--        <module>services/notification-service</module>-->
+          <module>services/notification-service</module>
      </modules>
 
      <dependencyManagement>

@@ -43,7 +43,7 @@ public class PaymentAcceptedV1 extends BaseEvent
         this.paymentCause = paymentCause;
     }
 
-    public UUID getreceiverAccountId()
+    public UUID getReceiverAccountId()
     {
         return receiverAccountId;
     }
@@ -53,7 +53,7 @@ public class PaymentAcceptedV1 extends BaseEvent
         return paymentId;
     }
 
-    public UUID getsenderAccountId()
+    public UUID getSenderAccountId()
     {
         return senderAccountId;
     }
