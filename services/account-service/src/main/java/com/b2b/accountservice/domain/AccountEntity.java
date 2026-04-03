@@ -19,10 +19,10 @@ public class AccountEntity
     @Column(length = 50, nullable = false, unique = true)
     private String email;
 
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, updatable = false)
     private AccountStatus accountStatus;
-
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
     private List<AccountBalanceEntity> saldi;
 

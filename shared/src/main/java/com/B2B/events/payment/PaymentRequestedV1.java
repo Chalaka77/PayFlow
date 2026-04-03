@@ -2,6 +2,8 @@ package com.B2B.events.payment;
 
 import com.B2B.events.BaseEvent;
 import com.B2B.extra.Currency;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,7 +19,16 @@ public class PaymentRequestedV1 extends BaseEvent
     private final Instant requestedAt;
     private final String paymentCause;
 
-    public PaymentRequestedV1(UUID eventId, UUID paymentId, UUID senderAccountId, UUID receiverAccountId, BigDecimal amount, Currency currency, Instant requestedAt, String paymentCause)
+    @JsonCreator
+    public PaymentRequestedV1(
+            @JsonProperty("eventId") UUID eventId,
+            @JsonProperty("paymentId") UUID paymentId,
+            @JsonProperty("senderAccountId") UUID senderAccountId,
+            @JsonProperty("receiverAccountId") UUID receiverAccountId,
+            @JsonProperty("amount") BigDecimal amount,
+            @JsonProperty("currency") Currency currency,
+            @JsonProperty("requestedAt") Instant requestedAt,
+            @JsonProperty("paymentCause") String paymentCause)
     {
         super(eventId, Instant.now());
         this.paymentId = paymentId;

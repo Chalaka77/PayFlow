@@ -1,5 +1,6 @@
 package com.b2b.paymentservice.app;
 
+import com.B2B.events.payment.PaymentRequestedV1;
 import com.B2B.extra.StatusPayment;
 import com.B2B.topics.TopicNamesV1;
 import com.b2b.paymentservice.api.dto.PaymentRequest;
@@ -54,10 +55,21 @@ public class PaymentServiceImpl implements PaymentService
 
         paymentRepository.save(paymentEntity);
 
+        PaymentRequestedV1 requestedEvent = new PaymentRequestedV1(
+                UUID.randomUUID(),
+                paymentEntity.getPaymentId(),
+                paymentRequest.senderAccountId(),
+                paymentRequest.receiverAccountId(),
+                paymentRequest.amount(),
+                paymentRequest.currency(),
+                paymentEntity.getPaymentRequestedAt(),
+                paymentRequest.reasonPayment().orElse(null)
+        );
+
         String payloadJson;
         try
         {
-            payloadJson = objectMapper.writeValueAsString(paymentEntity);
+            payloadJson = objectMapper.writeValueAsString(requestedEvent);
         }
         catch (JsonProcessingException e)
         {

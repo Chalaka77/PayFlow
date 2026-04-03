@@ -2,6 +2,16 @@ name: kafka-eda-payflow
 
 services:
 
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    networks:
+      - kafka-eda-net
+
   kafka:
     image: apache/kafka:3.7.0
     container_name: kafka-payflow
