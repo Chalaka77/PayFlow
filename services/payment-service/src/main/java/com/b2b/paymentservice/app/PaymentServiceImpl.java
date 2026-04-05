@@ -121,17 +121,4 @@ public class PaymentServiceImpl implements PaymentService
         paymentRepository.findById(event.getPaymentId()).ifPresent(paymentEntity -> {paymentEntity.updateStatus(StatusPayment.REJECTED);});
     }
 
-    @Override
-    @Transactional
-    public void updatePayment(UUID paymentId, StatusPayment status)
-    {
-        System.out.println(paymentRepository.findById(paymentId).orElse(null).getStatus().toString());
-        paymentRepository.findById(paymentId).ifPresent(paymentEntity -> {
-            paymentEntity.updateStatus(status);
-        });
-        System.out.println(paymentRepository.findById(paymentId).orElse(null).getStatus().toString());
-
-    }
-
-
 }

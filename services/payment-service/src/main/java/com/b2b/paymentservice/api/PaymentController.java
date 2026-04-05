@@ -41,10 +41,4 @@ public class PaymentController
         return new  ResponseEntity<>(paymentService.getPayments(), HttpStatus.OK);
     }
 
-    @PostMapping("/{paymentId}/{status}")
-    public void updatePayment(@PathVariable UUID paymentId,@PathVariable StatusPayment status)
-    {
-        paymentService.updatePayment(paymentId, status);
-    }
-
 }
