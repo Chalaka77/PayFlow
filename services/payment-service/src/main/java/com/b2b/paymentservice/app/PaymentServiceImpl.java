@@ -1,5 +1,7 @@
 package com.b2b.paymentservice.app;
 
+import com.B2B.events.account.PaymentAcceptedV1;
+import com.B2B.events.account.PaymentRejectedV1;
 import com.B2B.events.payment.PaymentRequestedV1;
 import com.B2B.extra.StatusPayment;
 import com.B2B.topics.TopicNamesV1;
@@ -104,4 +106,32 @@ public class PaymentServiceImpl implements PaymentService
     {
         return paymentRepository.findAll().stream().map(response -> new PaymentResponse(response.getPaymentId(),response.getStatus(),response.getPaymentRequestedAt(),response.getAmount(),response.getCurrency(),response.getReasonPayment())).toList();
     }
+
+    @Override
+    @Transactional
+    public void updatePayment(PaymentAcceptedV1 event)
+    {
+        paymentRepository.findById(event.getPaymentId()).ifPresent(paymentEntity -> {paymentEntity.updateStatus(StatusPayment.ACCEPTED);});
+    }
+
+    @Override
+    @Transactional
+    public void updatePayment(PaymentRejectedV1 event)
+    {
+        paymentRepository.findById(event.getPaymentId()).ifPresent(paymentEntity -> {paymentEntity.updateStatus(StatusPayment.REJECTED);});
+    }
+
+    @Override
+    @Transactional
+    public void updatePayment(UUID paymentId, StatusPayment status)
+    {
+        System.out.println(paymentRepository.findById(paymentId).orElse(null).getStatus().toString());
+        paymentRepository.findById(paymentId).ifPresent(paymentEntity -> {
+            paymentEntity.updateStatus(status);
+        });
+        System.out.println(paymentRepository.findById(paymentId).orElse(null).getStatus().toString());
+
+    }
+
+
 }

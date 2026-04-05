@@ -1,5 +1,6 @@
 package com.b2b.paymentservice.api;
 
+import com.B2B.extra.StatusPayment;
 import com.b2b.paymentservice.api.dto.PaymentRequest;
 import com.b2b.paymentservice.api.dto.PaymentResponse;
 import com.b2b.paymentservice.app.PaymentService;
@@ -39,4 +40,11 @@ public class PaymentController
     {
         return new  ResponseEntity<>(paymentService.getPayments(), HttpStatus.OK);
     }
+
+    @PostMapping("/{paymentId}/{status}")
+    public void updatePayment(@PathVariable UUID paymentId,@PathVariable StatusPayment status)
+    {
+        paymentService.updatePayment(paymentId, status);
+    }
+
 }

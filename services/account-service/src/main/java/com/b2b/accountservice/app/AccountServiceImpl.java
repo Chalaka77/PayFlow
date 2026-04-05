@@ -126,6 +126,7 @@ public class AccountServiceImpl implements AccountService
             PaymentRejectedV1 rejectEvent = new PaymentRejectedV1(
                     UUID.randomUUID(),
                     requestEvent.getReceiverAccountId(),
+                    requestEvent.getPaymentId(),
                     requestEvent.getSenderAccountId(),
                     requestEvent.getAmount(),
                     requestEvent.getCurrency(),

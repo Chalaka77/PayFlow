@@ -14,6 +14,7 @@ public class PaymentRejectedV1 extends BaseEvent
 {
     private final UUID receiverAccountId;
     private final UUID senderAccountId;
+    private final UUID paymentId;
     private final BigDecimal amount;
     private final Currency currency;
     private final Instant requestedAt;
@@ -26,6 +27,7 @@ public class PaymentRejectedV1 extends BaseEvent
     public PaymentRejectedV1(
             @JsonProperty("eventId") UUID eventId,
             @JsonProperty("receiverAccountId") UUID receiverAccountId,
+            @JsonProperty("paymentId") UUID paymentId,
             @JsonProperty("senderAccountId") UUID senderAccountId,
             @JsonProperty("amount") BigDecimal amount,
             @JsonProperty("currency") Currency currency,
@@ -36,6 +38,7 @@ public class PaymentRejectedV1 extends BaseEvent
     {
         super(eventId, Instant.now());
         this.receiverAccountId = receiverAccountId;
+        this.paymentId = paymentId;
         this.senderAccountId = senderAccountId;
         this.amount = amount;
         this.currency = currency;
@@ -53,6 +56,11 @@ public class PaymentRejectedV1 extends BaseEvent
     public UUID getSenderAccountId()
     {
         return senderAccountId;
+    }
+
+    public UUID getPaymentId()
+    {
+        return paymentId;
     }
 
     public BigDecimal getAmount()
