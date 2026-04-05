@@ -16,9 +16,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
+      - name: Install root pom
+        run: mvn install -N -DskipTests
       - name: Install shared library
         run: mvn install -f shared/pom.xml -DskipTests
-
       - name: Cache shared artifact
         uses: actions/cache@v4
         with:
