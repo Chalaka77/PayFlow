@@ -41,3 +41,7 @@ outbox:
   scheduler:
     delay-ms: 2000
     batch-size: 50
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: ${JWT_EXPIRATION_MS}

@@ -26,7 +26,7 @@ account-service  →  Inbox (idempotency)  →  validates accounts & balance  �
 
 | Service | Port | DB Port | Description |
 |---|---|---|---|
-| payment-service | 8081 | 5433 | REST API, Outbox Pattern, Inbox Pattern |
+| payment-service | 8081 | 5433 | REST API, Outbox Pattern, Inbox Pattern, JWT Auth |
 | account-service | 8082 | 5434 | Async consumer, balance management, Outbox + Inbox |
 | notification-service | 8083 | 5435 | Async consumer, Inbox, simulated notification log |
 
@@ -50,6 +50,7 @@ account-service  →  Inbox (idempotency)  →  validates accounts & balance  �
 - **Maven multi-module** — shared library across services
 - **Docker Compose** — full local environment
 - **GitHub Actions** — parallel CI (build-shared → 3 parallel test jobs)
+- **Spring Security + JJWT 0.13.0** — JWT-based authentication on payment-service
 
 ---
 
@@ -59,6 +60,51 @@ account-service  →  Inbox (idempotency)  →  validates accounts & balance  �
 - **Inbox Pattern** — all Kafka consumers persist a `processed_event` record before processing; duplicate events are discarded via unique constraint violation
 - **Idempotent consumers** — safe to re-deliver any event without side effects
 - **Multi-currency balances** — each account has separate balance rows per currency (`UNIQUE(account_id, currency)`)
+
+---
+
+## Authentication
+
+`payment-service` is protected by JWT-based authentication via Spring Security.
+
+> ⚠️ **This is a basic implementation**, intentionally kept simple for a portfolio project. It covers the core JWT pattern but does not include advanced production features.
+
+### What is implemented
+
+- Stateless JWT authentication with JJWT 0.13.0 (HS256 signing)
+- `POST /auth/login` returns a signed JWT token
+- All `/payment/**` endpoints require a valid `Authorization: Bearer <token>` header
+- `JwtAuthenticationFilter` intercepts every request and validates the token
+- Secret managed via environment variable (`JWT_SECRET`)
+- Token expiration configurable via `JWT_EXPIRATION_MS` (default: 1 hour)
+- Single hardcoded user (`admin` / `password`) — sufficient for demo purposes
+
+### What is NOT implemented
+
+- User management with database (no `UserRepository`, no registration)
+- Password hashing (BCrypt)
+- Role-based access control (RBAC)
+- Refresh tokens
+- Token blacklisting / logout
+- Per-service authentication (only `payment-service` is protected — `account-service` and `notification-service` are async and have no HTTP endpoints)
+
+### How to obtain a token
+
+```
+POST http://localhost:8081/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "password"
+}
+```
+
+Use the returned token in all subsequent requests:
+
+```
+Authorization: Bearer <token>
+```
 
 ---
 
@@ -163,11 +209,14 @@ VALUES
 
 Base URL: `http://localhost:8081`
 
+> ⚠️ All endpoints require `Authorization: Bearer <token>`. See the Authentication section to obtain a token.
+
 ### Create a payment
 
 ```
 POST /payment
 Content-Type: application/json
+Authorization: Bearer <token>
 ```
 
 **Happy path:**
@@ -215,12 +264,14 @@ Content-Type: application/json
 
 ```
 GET /payment/{paymentId}
+Authorization: Bearer <token>
 ```
 
 ### Get all payments
 
 ```
 GET /payment/all
+Authorization: Bearer <token>
 ```
 
 ---
@@ -288,7 +339,7 @@ PayFlow/
 │       ├── extra/                    # Currency, StatusPayment, RejectionCause, AccountStatus
 │       └── topics/                   # TopicNamesV1
 ├── services/
-│   ├── payment-service/              # Port 8081 — REST + Outbox + Inbox
+│   ├── payment-service/              # Port 8081 — REST + Outbox + Inbox + JWT Auth
 │   ├── account-service/              # Port 8082 — Async + Outbox + Inbox
 │   └── notification-service/         # Port 8083 — Async + Inbox
 └── .github/workflows/ci.yml
@@ -298,9 +349,6 @@ PayFlow/
 
 ## Not Yet Implemented
 
-- Authentication — JWT / Spring Security
-- Observability — Prometheus, Grafana, OpenTelemetry
-- Resilience — Dead Letter Queue, Circuit Breaker
-- REST API for account management (create/update accounts and balances)
-- Integration tests with Testcontainers
-- Cloud deployment — AWS (ECS, RDS, MSK)
+- REST API for account management — create and manage accounts and balances via HTTP instead of direct DB inserts
+- Role-based access control (RBAC) — ADMIN / USER roles embedded in the JWT token
+- `spring.jpa.open-in-view=false` — to be set on all three services
