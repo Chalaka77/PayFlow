@@ -1,6 +1,9 @@
 package com.b2b.paymentservice.app;
 
+import com.B2B.events.account.PaymentAcceptedV1;
+import com.B2B.events.account.PaymentRejectedV1;
 import com.B2B.extra.Currency;
+import com.B2B.extra.RejectionCause;
 import com.B2B.extra.StatusPayment;
 import com.b2b.paymentservice.api.dto.PaymentRequest;
 import com.b2b.paymentservice.api.dto.PaymentResponse;
@@ -104,6 +107,59 @@ public class PaymentServiceTest
                 .isInstanceOf(PaymentNotFoundException.class);
 
         verify(paymentRepository, times(1)).findById(paymentId);
+    }
+
+    @Test
+    void updatePayment_accepted()
+    {
+        Instant requestedDate = Instant.now();
+        UUID paymentId = UUID.randomUUID();
+        UUID senderId = UUID.randomUUID();
+        UUID receiverId = UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+        PaymentAcceptedV1 request = new PaymentAcceptedV1(
+                eventId,
+                receiverId,
+                paymentId,
+                senderId,
+                BigDecimal.valueOf(70),
+                Currency.EUR,
+                requestedDate,
+                Instant.now(),
+                null
+        );
+        PaymentEntity payment = new PaymentEntity(senderId,receiverId,BigDecimal.valueOf(70),Currency.EUR,StatusPayment.PENDING,requestedDate);
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        paymentService.updatePayment(request);
+        assertThat(payment.getStatus()).isEqualTo(StatusPayment.ACCEPTED);
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePayment_rejected()
+    {
+        Instant requestedDate = Instant.now();
+        UUID paymentId = UUID.randomUUID();
+        UUID senderId = UUID.randomUUID();
+        UUID receiverId = UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+        PaymentRejectedV1 request = new PaymentRejectedV1(
+                eventId,
+                receiverId,
+                paymentId,
+                senderId,
+                BigDecimal.valueOf(70),
+                Currency.EUR,
+                requestedDate,
+                Instant.now(),
+                null,
+                RejectionCause.NOT_ENOUGH_FUNDS
+        );
+        PaymentEntity payment = new PaymentEntity(senderId,receiverId,BigDecimal.valueOf(100),Currency.EUR,StatusPayment.PENDING,requestedDate);
+        when(paymentRepository.findById(paymentId)).thenReturn(Optional.of(payment));
+        paymentService.updatePayment(request);
+        assertThat(payment.getStatus()).isEqualTo(StatusPayment.REJECTED);
+        verify(paymentRepository, never()).save(any());
     }
 
 }
