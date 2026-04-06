@@ -4,15 +4,15 @@ import com.B2B.events.account.PaymentAcceptedV1;
 import com.B2B.events.account.PaymentRejectedV1;
 import com.B2B.events.payment.PaymentRequestedV1;
 import com.B2B.extra.AccountStatus;
+import com.B2B.extra.Currency;
 import com.B2B.extra.RejectionCause;
 import com.B2B.topics.TopicNamesV1;
+import com.b2b.accountservice.api.dto.*;
 import com.b2b.accountservice.domain.AccountBalanceEntity;
+import com.b2b.accountservice.domain.AccountBalanceRepository;
 import com.b2b.accountservice.domain.AccountEntity;
 import com.b2b.accountservice.domain.AccountRepository;
-import com.b2b.accountservice.exceptions.AccountNotActiveException;
-import com.b2b.accountservice.exceptions.AccountNotFoundException;
-import com.b2b.accountservice.exceptions.CurrencyNotSupportedException;
-import com.b2b.accountservice.exceptions.InsufficientFundsException;
+import com.b2b.accountservice.exceptions.*;
 import com.b2b.accountservice.outbox.OutboxEventEntity;
 import com.b2b.accountservice.outbox.OutboxEventRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,26 +22,28 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.*;
 
 
 @Service
 public class AccountServiceImpl implements AccountService
 {
     private final AccountRepository accountRepository;
+    private final AccountBalanceRepository accountBalanceRepository;
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(AccountServiceImpl.class);
 
-    public AccountServiceImpl(AccountRepository accountRepository, OutboxEventRepository outboxEventRepository, ObjectMapper objectMapper)
+    public AccountServiceImpl(AccountRepository accountRepository, OutboxEventRepository outboxEventRepository, ObjectMapper objectMapper,  AccountBalanceRepository accountBalanceRepository)
     {
         this.accountRepository = accountRepository;
         this.outboxEventRepository = outboxEventRepository;
         this.objectMapper = objectMapper;
+        this.accountBalanceRepository = accountBalanceRepository;
     }
 
-//    TODO verificare e aggiungere sad path e pubblicare evento rigettato.
     @Override
     @Transactional
     public void processPayment(PaymentRequestedV1 requestEvent)
@@ -153,6 +155,98 @@ public class AccountServiceImpl implements AccountService
             }
 
         }
-
     }
+
+/* TODO fix da fare:
+    GetAccount ID :  se id non presente va in 500.
+
+    UPDATE STATUS : non aggiorna, se id presente va in 500.
+
+    aggiorna BALANCE, sostituisce i valori presenti al posto di aggiornare. , se valuta non presente va in 500.
+
+    create account, non blocca creazione se email gia' presente, crea altri account con stessa email. Non c'e' controllo su formato email. Se inserisco un numero, lo accetta e crea account.
+
+    add new Balanace, se gia' presente va in 500. anche qua se account non presente va in 500.
+
+    findBy email : se si mette email non presente, va in 500.
+ */
+
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountResponse findAccountByEmail(String email)
+    {
+        AccountEntity entity = accountRepository.findByEmail(email).orElseThrow(() -> new AccountNotFoundException("No account found with the email: " + email));
+        return new AccountResponse(entity.getAccountId(),entity.getEmail(),entity.getAccountStatus(),entity.getSaldi().stream().map(balanceSaldo -> new AccountBalanceResponse(balanceSaldo.getCurrency(), balanceSaldo.getBalance())).toList());
+    }
+
+    @Override
+    @Transactional
+    public CreateAccountResponse createAccount(CreateAccountRequest request)
+    {
+        AccountEntity entity = new AccountEntity(request.email());
+        accountRepository.save(entity);
+        return new CreateAccountResponse(entity.getEmail(), entity.getAccountStatus());
+    }
+
+    @Override
+    @Transactional
+    public AddBalanceResponse addBalanceOnCurrency(AddBalanceRequest request, UUID accountId)
+    {
+        AccountEntity entity = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
+        AccountBalanceEntity balanceToAdd;
+        List<AccountBalanceEntity> accountBalanceEntityList = entity.getSaldi();
+
+        boolean currencyExist = accountBalanceEntityList.stream().anyMatch(balance -> balance.getCurrency().equals(request.currency()));
+
+        if(currencyExist)
+            throw new CurrencyAlreadyExists("Currency: "+ request.currency()+  " already exists");
+        else
+        {
+            balanceToAdd = new AccountBalanceEntity(request.currency(), entity);
+            accountBalanceEntityList.add(balanceToAdd);
+            balanceToAdd.updateBalance(request.amount());
+            accountBalanceRepository.save(balanceToAdd);
+            return new AddBalanceResponse(balanceToAdd.getCurrency(),balanceToAdd.getBalance());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountResponse getAccountDetail(UUID accountId)
+    {
+        AccountEntity entity = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
+        List<AccountBalanceResponse> listAccountBalance = entity.getSaldi().stream().map(balanceSaldo -> new AccountBalanceResponse(balanceSaldo.getCurrency(), balanceSaldo.getBalance())).toList();
+
+        return new AccountResponse(entity.getAccountId(), entity.getEmail(), entity.getAccountStatus(), listAccountBalance);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AccountResponse> findAllAccounts()
+    {
+        List<AccountEntity> accountEntities = accountRepository.findAll();
+
+        return accountEntities.stream().map(entity -> new AccountResponse(entity.getAccountId(), entity.getEmail(), entity.getAccountStatus(), entity.getSaldi().stream().map(balanceSaldo -> new AccountBalanceResponse(balanceSaldo.getCurrency(), balanceSaldo.getBalance())).toList())).toList();
+    }
+
+    @Override
+    @Transactional
+    public void updateBalance(UUID accountId, Currency currency, BigDecimal amount)
+    {
+        AccountEntity entity = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
+        AccountBalanceEntity balanceToUpdate = entity.getSaldi().stream().filter(balance -> balance.getCurrency().equals(currency)).findFirst().orElseThrow(() -> new CurrencyNotSupportedException(currency.toString()));
+        balanceToUpdate.updateBalance(amount);
+    }
+
+    @Override
+    @Transactional
+    public void changeAccountStatus(UUID accountId, UpdateAccountStatusRequest status)
+    {
+        AccountEntity entity = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
+        entity.changeAccountStatus(status.accountStatus());
+    }
+
+
 }

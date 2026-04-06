@@ -4,6 +4,7 @@ import com.B2B.extra.AccountStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.UuidGenerator;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,6 +33,13 @@ public class AccountEntity
         this.email = email;
         this.saldi = saldi;
         this.accountStatus = AccountStatus.ACTIVE;
+    }
+
+    public AccountEntity(String email)
+    {
+        this.email = email;
+        this.accountStatus = AccountStatus.ACTIVE;
+        this.saldi = new ArrayList<>();
     }
 
     protected AccountEntity(){}
