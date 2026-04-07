@@ -22,7 +22,7 @@ public class AccountEntity
 
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private AccountStatus accountStatus;
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
     private List<AccountBalanceEntity> saldi;

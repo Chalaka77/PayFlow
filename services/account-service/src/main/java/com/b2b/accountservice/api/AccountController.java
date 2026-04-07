@@ -4,6 +4,7 @@ import com.B2B.extra.Currency;
 import com.b2b.accountservice.api.dto.*;
 import com.b2b.accountservice.app.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,28 +26,28 @@ public class AccountController
 
     @PostMapping
     @Operation(summary = "Create a new account")
-    public ResponseEntity<CreateAccountResponse> createAccount(@RequestBody CreateAccountRequest createAccountRequest)
+    public ResponseEntity<CreateAccountResponse> createAccount(@Valid @RequestBody CreateAccountRequest createAccountRequest)
     {
         return new ResponseEntity<>(accountService.createAccount(createAccountRequest), HttpStatus.CREATED);
     }
 
     @PostMapping("/{accountId}/balance")
     @Operation(summary = "Add a new Currency and Balance")
-    public ResponseEntity<AddBalanceResponse> addBalance(@RequestBody AddBalanceRequest addBalanceRequest, @PathVariable UUID accountId)
+    public ResponseEntity<AddBalanceResponse> addBalance(@Valid @RequestBody AddBalanceRequest addBalanceRequest,@Valid @PathVariable UUID accountId)
     {
         return new ResponseEntity<>(accountService.addBalanceOnCurrency(addBalanceRequest,accountId), HttpStatus.CREATED);
     }
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Find account by email")
-    public ResponseEntity<AccountResponse> getAccountByEmail(@PathVariable String email)
+    public ResponseEntity<AccountResponse> getAccountByEmail(@Valid @PathVariable String email)
     {
         return new ResponseEntity<>(accountService.findAccountByEmail(email), HttpStatus.OK);
     }
 
     @GetMapping("/{accountId}")
     @Operation(summary = "Get Account")
-    public ResponseEntity<AccountResponse> getAccount(@PathVariable UUID accountId)
+    public ResponseEntity<AccountResponse> getAccount(@Valid @PathVariable UUID accountId)
     {
         return new ResponseEntity<>(accountService.getAccountDetail(accountId), HttpStatus.OK);
     }
@@ -60,7 +61,7 @@ public class AccountController
 
     @PutMapping("/{accountId}/balance/{currency}")
     @Operation(summary = "Update Balance of single conto (Currency/Amount)")
-    public ResponseEntity<Void> updateAccountBalance(@PathVariable UUID accountId, @PathVariable Currency currency, @RequestBody BigDecimal amount)
+    public ResponseEntity<Void> updateAccountBalance(@Valid @PathVariable UUID accountId,@Valid @PathVariable Currency currency,@Valid @RequestBody BigDecimal amount)
     {
         accountService.updateBalance(accountId,currency,amount);
         return ResponseEntity.noContent().build();

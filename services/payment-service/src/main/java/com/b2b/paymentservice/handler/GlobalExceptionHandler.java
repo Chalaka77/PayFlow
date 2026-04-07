@@ -22,7 +22,7 @@ public class GlobalExceptionHandler
     public ResponseEntity<ErrorResponse> handleBaseException(BaseException ex)
     {
         logger.error("Business exception: {}", ex.getMessage());
-        ErrorResponse response = new ErrorResponse(Instant.now(), ex.getStatus(), ex.getMessage());
+        ErrorResponse response = new ErrorResponse(Instant.now(), ex.getStatus().value(), ex.getMessage());
         return new ResponseEntity<>(response, ex.getStatus());
     }
 
@@ -34,14 +34,14 @@ public class GlobalExceptionHandler
                 .findFirst()
                 .orElse("Validation failed");
 
-        ErrorResponse response = new ErrorResponse(Instant.now(), HttpStatus.BAD_REQUEST, message);
+        ErrorResponse response = new ErrorResponse(Instant.now(), 400, message);
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException ex)
     {
-        ErrorResponse response = new ErrorResponse(Instant.now(), HttpStatus.BAD_REQUEST, "Malformed JSON or invalid field type.");
+        ErrorResponse response = new ErrorResponse(Instant.now(), 400, "Malformed JSON or invalid field type.");
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler
     public ResponseEntity<ErrorResponse> handlePaymentNotFound(PaymentNotFoundException ex)
     {
         logger.error("Payment not found with the provided id: {}", ex.getMessage(), ex);
-        ErrorResponse response = new ErrorResponse(Instant.now(), HttpStatus.NOT_FOUND, "No payment found with this ID.");
+        ErrorResponse response = new ErrorResponse(Instant.now(), ex.getStatus().value(), "No payment found with this ID.");
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 

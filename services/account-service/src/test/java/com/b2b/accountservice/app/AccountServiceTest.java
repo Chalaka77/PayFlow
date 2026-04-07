@@ -3,9 +3,17 @@ package com.b2b.accountservice.app;
 import com.B2B.events.payment.PaymentRequestedV1;
 import com.B2B.extra.AccountStatus;
 import com.B2B.extra.Currency;
+import com.b2b.accountservice.api.dto.AddBalanceRequest;
+import com.b2b.accountservice.api.dto.CreateAccountRequest;
+import com.b2b.accountservice.api.dto.CreateAccountResponse;
+import com.b2b.accountservice.api.dto.UpdateAccountStatusRequest;
 import com.b2b.accountservice.domain.AccountBalanceEntity;
+import com.b2b.accountservice.domain.AccountBalanceRepository;
 import com.b2b.accountservice.domain.AccountEntity;
 import com.b2b.accountservice.domain.AccountRepository;
+import com.b2b.accountservice.exceptions.AccountNotFoundException;
+import com.b2b.accountservice.exceptions.CurrencyAlreadyExists;
+import com.b2b.accountservice.exceptions.CurrencyNotSupportedException;
 import com.b2b.accountservice.outbox.OutboxEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -13,6 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +31,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -34,6 +45,8 @@ public class AccountServiceTest
     private OutboxEventRepository outboxEventRepository;
     @Mock
     private ObjectMapper objectMapper;
+    @Mock
+    private AccountBalanceRepository accountBalanceRepository;
 
     @InjectMocks
     private AccountServiceImpl accountService;
@@ -214,6 +227,130 @@ public class AccountServiceTest
         verify(outboxEventRepository, times(1)).save(any());
     }
 
+    // createAccount
+    @Test
+    void createAccount_success()
+    {
+        CreateAccountRequest request = new CreateAccountRequest("test@yahoo.com");
+
+        accountService.createAccount(request);
+        verify(accountRepository, times(1)).save(any());
+    }
+    @Test
+    void createAccount_emailAlreadyInUse()
+    {
+        CreateAccountRequest request = new CreateAccountRequest("email@yahoo.com");
+
+        when(accountRepository.save(any())).thenThrow(DataIntegrityViolationException.class);
+        assertThrows(DataIntegrityViolationException.class, () -> accountService.createAccount(request));
+    }
+
+    // changeAccountStatus
+    @Test
+    void changeAccountStatus_success()
+    {
+        UUID accountId = UUID.randomUUID();
+        AccountEntity account = new AccountEntity(
+                "account@mail.com",
+                new ArrayList<>());
+
+        UpdateAccountStatusRequest updateAccountStatusRequest = new UpdateAccountStatusRequest(AccountStatus.DISABLED);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        accountService.changeAccountStatus(accountId, updateAccountStatusRequest);
+        assertThat(account.getAccountStatus()).isEqualTo(AccountStatus.DISABLED);
+
+    }
+
+    @Test
+    void changeAccountStatus_accountNotFound()
+    {
+        UUID accountId = UUID.randomUUID();
+        UpdateAccountStatusRequest updateAccountStatusRequest = new UpdateAccountStatusRequest(AccountStatus.DISABLED);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+        assertThrows(AccountNotFoundException.class, () -> accountService.changeAccountStatus(accountId, updateAccountStatusRequest));
+    }
+
+    // addBalance
+    @Test
+    void addBalance_success()
+    {
+        UUID accountId = UUID.randomUUID();
+        AccountEntity account = new AccountEntity("accouhnt@mail.com", new ArrayList<>());
+        AddBalanceRequest request =  new AddBalanceRequest(Currency.EUR,BigDecimal.valueOf(100));
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        accountService.addBalanceOnCurrency(request,accountId);
+        assertThat(account.getSaldi()).size().isEqualTo(1);
+        assertThat(account.getSaldi().getFirst().getBalance()).isEqualByComparingTo(BigDecimal.valueOf(100));
+    }
+
+    @Test
+    void addBalance_accountNotFound()
+    {
+        UUID accountId = UUID.randomUUID();
+        AddBalanceRequest request = new AddBalanceRequest(Currency.EUR,BigDecimal.valueOf(100));
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+        assertThrows(AccountNotFoundException.class, () -> accountService.addBalanceOnCurrency(request,accountId));
+    }
+
+    @Test
+    void addBalance_currencyAlreadyExists()
+    {
+        UUID accountId = UUID.randomUUID();
+        AccountEntity account = new AccountEntity("account@mail.com", new ArrayList<>());
+        AccountBalanceEntity balance = new AccountBalanceEntity(Currency.EUR, account);
+        balance.updateBalance(BigDecimal.valueOf(100));
+        account.getSaldi().add(balance);
+        AddBalanceRequest request =  new AddBalanceRequest(Currency.EUR,BigDecimal.valueOf(100));
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        assertThrows(CurrencyAlreadyExists.class, () -> accountService.addBalanceOnCurrency(request,accountId));
+    }
+
+    // updateBalance
+    @Test
+    void updateBalance_success()
+    {
+        UUID accountId = UUID.randomUUID();
+        AccountEntity account = new AccountEntity("account@mail.com", new ArrayList<>());
+        AccountBalanceEntity balance = new AccountBalanceEntity(Currency.EUR, account);
+        balance.updateBalance(BigDecimal.valueOf(100));
+        account.getSaldi().add(balance);
+        Currency currencyToUpdate = Currency.EUR;
+        BigDecimal balanceToUpdate = BigDecimal.valueOf(77);
+        BigDecimal sumExpected = balance.getBalance().add(balanceToUpdate);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        accountService.updateBalance(accountId,currencyToUpdate,balanceToUpdate);
+        assertThat(account.getSaldi().getFirst().getBalance()).isEqualByComparingTo(sumExpected);
+    }
+
+    @Test
+    void updateBalance_accountNotFound()
+    {
+        UUID accountId = UUID.randomUUID();
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.empty());
+        assertThrows(AccountNotFoundException.class, () -> accountService.updateBalance(accountId,Currency.EUR,BigDecimal.valueOf(100)));
+    }
+
+    @Test
+    void updateBalance_currencyNotSupported()
+    {
+        UUID accountId = UUID.randomUUID();
+        AccountEntity account = new AccountEntity("account@mail.com", new ArrayList<>());
+        AccountBalanceEntity balance = new AccountBalanceEntity(Currency.EUR, account);
+        balance.updateBalance(BigDecimal.valueOf(100));
+        account.getSaldi().add(balance);
+        Currency currencyToUpdate = Currency.USD;
+        BigDecimal balanceToUpdate = BigDecimal.valueOf(77);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(account));
+        assertThrows(CurrencyNotSupportedException.class , () -> accountService.updateBalance(accountId,currencyToUpdate,balanceToUpdate));
+    }
 
 
 }

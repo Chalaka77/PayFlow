@@ -157,21 +157,6 @@ public class AccountServiceImpl implements AccountService
         }
     }
 
-/* TODO fix da fare:
-    GetAccount ID :  se id non presente va in 500.
-
-    UPDATE STATUS : non aggiorna, se id presente va in 500.
-
-    aggiorna BALANCE, sostituisce i valori presenti al posto di aggiornare. , se valuta non presente va in 500.
-
-    create account, non blocca creazione se email gia' presente, crea altri account con stessa email. Non c'e' controllo su formato email. Se inserisco un numero, lo accetta e crea account.
-
-    add new Balanace, se gia' presente va in 500. anche qua se account non presente va in 500.
-
-    findBy email : se si mette email non presente, va in 500.
- */
-
-
 
     @Override
     @Transactional(readOnly = true)
@@ -226,9 +211,7 @@ public class AccountServiceImpl implements AccountService
     @Transactional(readOnly = true)
     public List<AccountResponse> findAllAccounts()
     {
-        List<AccountEntity> accountEntities = accountRepository.findAll();
-
-        return accountEntities.stream().map(entity -> new AccountResponse(entity.getAccountId(), entity.getEmail(), entity.getAccountStatus(), entity.getSaldi().stream().map(balanceSaldo -> new AccountBalanceResponse(balanceSaldo.getCurrency(), balanceSaldo.getBalance())).toList())).toList();
+        return accountRepository.findAll().stream().map(entity -> new AccountResponse(entity.getAccountId(), entity.getEmail(), entity.getAccountStatus(), entity.getSaldi().stream().map(balanceSaldo -> new AccountBalanceResponse(balanceSaldo.getCurrency(), balanceSaldo.getBalance())).toList())).toList();
     }
 
     @Override
@@ -237,7 +220,7 @@ public class AccountServiceImpl implements AccountService
     {
         AccountEntity entity = accountRepository.findById(accountId).orElseThrow(() -> new AccountNotFoundException(accountId.toString()));
         AccountBalanceEntity balanceToUpdate = entity.getSaldi().stream().filter(balance -> balance.getCurrency().equals(currency)).findFirst().orElseThrow(() -> new CurrencyNotSupportedException(currency.toString()));
-        balanceToUpdate.updateBalance(amount);
+        balanceToUpdate.updateBalance(balanceToUpdate.getBalance().add(amount));
     }
 
     @Override
