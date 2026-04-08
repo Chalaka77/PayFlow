@@ -27,14 +27,25 @@ public class JwtUtil
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(String username)
+    public String generateToken(String username,String role)
     {
         return Jwts.builder()
+                .claim("role",role)
                 .subject(username)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    public String extractRole(String token)
+    {
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
     }
 
     public String extractUsername(String token)

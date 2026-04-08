@@ -43,6 +43,9 @@ public class PaymentEntity
     @Column(nullable = true)
     private Instant updatedAt;
 
+    @Column(nullable = true)
+    private String rejectionCause;
+
 
     public PaymentEntity(UUID senderAccountId, UUID receiverAccountId, BigDecimal amount, Currency currency, StatusPayment status, Instant paymentRequestedAt)
     {
@@ -61,6 +64,16 @@ public class PaymentEntity
     {
         this.status = newStatus;
         this.updatedAt = Instant.now();
+    }
+
+    public void setRejectionCause(String rejectionCause)
+    {
+        this.rejectionCause = rejectionCause;
+    }
+
+    public String getRejectionCause()
+    {
+        return this.rejectionCause;
     }
 
     public void setReasonPayment(String reasonPayment)

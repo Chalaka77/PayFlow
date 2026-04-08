@@ -89,7 +89,7 @@ public class PaymentServiceImpl implements PaymentService
 
         outboxEventRepository.save(event);
 
-        return new PaymentResponse(paymentEntity.getPaymentId(),paymentEntity.getStatus(),paymentEntity.getPaymentRequestedAt(),paymentEntity.getAmount(),paymentEntity.getCurrency(),paymentEntity.getReasonPayment());
+        return new PaymentResponse(paymentEntity.getPaymentId(),paymentEntity.getStatus(),paymentEntity.getPaymentRequestedAt(),paymentEntity.getAmount(),paymentEntity.getCurrency(),paymentEntity.getReasonPayment(),paymentEntity.getRejectionCause());
     }
 
     @Override
@@ -97,14 +97,14 @@ public class PaymentServiceImpl implements PaymentService
     public PaymentResponse getPayment(UUID paymentId)
     {
         PaymentEntity entity = paymentRepository.findById(paymentId).orElseThrow(() -> new PaymentNotFoundException("Payment not found with the provided id: " + paymentId));
-        return new PaymentResponse(entity.getPaymentId(),entity.getStatus(),entity.getPaymentRequestedAt(),entity.getAmount(),entity.getCurrency(),entity.getReasonPayment());
+        return new PaymentResponse(entity.getPaymentId(),entity.getStatus(),entity.getPaymentRequestedAt(),entity.getAmount(),entity.getCurrency(),entity.getReasonPayment(),entity.getRejectionCause());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PaymentResponse> getPayments()
     {
-        return paymentRepository.findAll().stream().map(response -> new PaymentResponse(response.getPaymentId(),response.getStatus(),response.getPaymentRequestedAt(),response.getAmount(),response.getCurrency(),response.getReasonPayment())).toList();
+        return paymentRepository.findAll().stream().map(response -> new PaymentResponse(response.getPaymentId(),response.getStatus(),response.getPaymentRequestedAt(),response.getAmount(),response.getCurrency(),response.getReasonPayment(),response.getRejectionCause())).toList();
     }
 
     @Override
@@ -118,7 +118,7 @@ public class PaymentServiceImpl implements PaymentService
     @Transactional
     public void updatePayment(PaymentRejectedV1 event)
     {
-        paymentRepository.findById(event.getPaymentId()).ifPresent(paymentEntity -> {paymentEntity.updateStatus(StatusPayment.REJECTED);});
+        paymentRepository.findById(event.getPaymentId()).ifPresent(paymentEntity -> {paymentEntity.updateStatus(StatusPayment.REJECTED); paymentEntity.setRejectionCause(event.getRejectionCause().name());});
     }
 
 }

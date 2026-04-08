@@ -16,9 +16,14 @@ public class AuthService
 
     public String login(String username, String password)
     {
-        if("admin".equals(username) && "admin".equals(password))
+        if("admin".equals(username) && "password".equals(password))
         {
-            return jwtUtil.generateToken(username);
+            return jwtUtil.generateToken(username, "ADMIN");
+        }
+
+        if("user".equals(username) && "password".equals(password))
+        {
+            return jwtUtil.generateToken(username, "USER");
         }
         throw new RuntimeException("Invalid credentials");
     }
