@@ -1,16 +1,16 @@
-package com.b2b.paymentservice.auth;
+package com.b2b.authservice.auth;
 
-import com.b2b.paymentservice.security.JwtUtil;
+import com.b2b.authservice.security.JwtTokenService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService
 {
-    private final JwtUtil jwtUtil;
+    private final JwtTokenService jwtTokenService;
 
-    public AuthService(JwtUtil jwtUtil)
+    public AuthService(JwtTokenService jwtTokenService)
     {
-        this.jwtUtil = jwtUtil;
+        this.jwtTokenService = jwtTokenService;
     }
 
 
@@ -18,12 +18,12 @@ public class AuthService
     {
         if("admin".equals(username) && "password".equals(password))
         {
-            return jwtUtil.generateToken(username, "ADMIN");
+            return jwtTokenService.generateToken(username, "ADMIN");
         }
 
         if("user".equals(username) && "password".equals(password))
         {
-            return jwtUtil.generateToken(username, "USER");
+            return jwtTokenService.generateToken(username, "USER");
         }
         throw new RuntimeException("Invalid credentials");
     }

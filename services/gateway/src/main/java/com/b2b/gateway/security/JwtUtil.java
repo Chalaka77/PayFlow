@@ -1,4 +1,4 @@
-package com.b2b.paymentservice.security;
+package com.b2b.gateway.security;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
 
 @Component
 public class JwtUtil
@@ -27,16 +26,6 @@ public class JwtUtil
         this.secretKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 
-    public String generateToken(String username,String role)
-    {
-        return Jwts.builder()
-                .claim("role",role)
-                .subject(username)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(secretKey)
-                .compact();
-    }
 
     public String extractRole(String token)
     {
